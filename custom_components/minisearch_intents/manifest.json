@@ -1,0 +1,12 @@
+{
+  "domain": "minisearch_intents",
+  "name": "MiniSearch Intents",
+  "version": "1.0.0",
+  "documentation": "https://github.com/immortalbob/minisearch_intents",
+  "issue_tracker": "https://github.com/immortalbob/minisearch_intents/issues",
+  "dependencies": [],
+  "codeowners": ["@immortalbob"],
+  "requirements": [],
+  "iot_class": "local_polling",
+  "config_flow": true
+}
