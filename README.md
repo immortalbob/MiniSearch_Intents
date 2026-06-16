@@ -2,10 +2,9 @@
 
 A Home Assistant custom integration that exposes [MiniSearch](https://github.com/immortalbob/MiniSearch) and a set of local utility tools as a native LLM Tool API.
 
-Once enabled, any Home Assistant conversation agent (Ollama, OpenAI, Anthropic, etc.) can search your local knowledge stack, perform calculations, convert units, query dates, and eventually manage timers through a single tool interface.
+Once enabled, any Home Assistant conversation agent (Ollama, OpenAI, Anthropic, etc.) can search your local knowledge stack, perform calculations, convert units, and query dates through a single tool interface.
 
 MiniSearch Intents appears alongside the built-in Assist API and can be enabled per conversation agent from the Home Assistant UI.
-
 
 ## What MiniSearch provides
 
@@ -42,8 +41,6 @@ ESP32 Voice Assistant
 | `calculator` | Evaluates math expressions, sqrt, trig, average | ✅ Working |
 | `unit_converter` | Converts between kitchen, weight, length, data, speed, and temperature units | ✅ Working |
 | `calendar_day` | Returns day of week and relative info for a given date | ✅ Working |
-| `set_timer` | Sets a timer that announces via TTS on the originating satellite | ⚠️ Work in progress — conflicts with built-in Assist timer handling |
-| Compound unit conversion | Handles inputs like "5 ft 10 in" or "2 lb 4 oz" | ⚠️ Work in progress — 8B models tend to pre-convert before calling the tool |
 
 ## Requirements
 
@@ -101,8 +98,6 @@ Supported unit pairs:
 
 Amounts can be fractions: `1/2`, `1 1/2`, `0.75`
 
-Compound amounts are supported in the tool schema (`5 ft 10 in`, `2 lb 4 oz`) but smaller LLMs (8B) tend to pre-convert to a single unit before calling the tool, bypassing this feature. Works more reliably with larger models.
-
 ## Calendar Day
 
 Ask what day of the week a date falls on, or how many days until an event.
@@ -112,9 +107,10 @@ Examples:
 - `how many days until Christmas`
 - `what day was January 1st 2000`
 
-## Timer
+## Roadmap
 
-Sets a timer that announces via TTS when done. Currently conflicts with Home Assistant's built-in Assist timer handling on some setups — under investigation.
+- **Timer** — TTS announcement on the originating satellite when a timer expires. Pending resolution of a conflict with Home Assistant's built-in timer intent handling.
+- **Compound unit conversion** — support for inputs like "5 ft 10 in" or "2 lb 4 oz". Pending — smaller LLMs (8B) tend to pre-convert before calling the tool, bypassing this feature.
 
 ## Part of the MiniNet stack
 
