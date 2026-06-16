@@ -3,7 +3,6 @@ from __future__ import annotations
 
 import logging
 import math
-import asyncio
 import aiohttp
 import voluptuous as vol
 from datetime import datetime
@@ -13,7 +12,6 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers import llm
-from homeassistant.helpers.entity_registry import async_get as async_get_entity_registry
 from homeassistant.util.json import JsonObjectType
 
 from .const import DOMAIN, CONF_MINISEARCH_URL, DEFAULT_MINISEARCH_URL, API_NAME
@@ -62,12 +60,11 @@ class MiniSearchAPI(llm.API):
             api=self,
             api_prompt=(
                 "You have access to MiniSearch tools for knowledge lookup, calculations, "
-                "unit conversions, calendar queries, and timers. "
+                "unit conversions, and calendar queries. "
                 "Use `minisearch` for any question requiring external information — it routes "
                 "automatically to offline knowledge, weather forecast, news, or web search. "
                 "Use `calculator` for math. Use `unit_converter` for unit conversions. "
-                "Use `calendar_day` to find what day of the week a date falls on. "
-                "Use `minisearch_timer` to set a timer that will announce via TTS when done."
+                "Use `calendar_day` to find what day of the week a date falls on."
             ),
             llm_context=llm_context,
             tools=[
@@ -75,7 +72,6 @@ class MiniSearchAPI(llm.API):
                 CalculatorTool(),
                 UnitConverterTool(),
                 CalendarDayTool(),
-                TimerTool(),
             ],
         )
 
@@ -215,9 +211,7 @@ class UnitConverterTool(llm.Tool):
         "weight (kg, lb, oz, g), length (km, mile, m, ft, inch, cm), "
         "data sizes (kb, mb, gb, tb), and speed (mph, kph). "
         "For temperature, use 'celsius_to_fahrenheit' or 'fahrenheit_to_celsius' as the from_unit. "
-        "Amounts can be fractions like '1/2' or '1 1/2'. "
-        "Compound amounts are supported: '5 ft 10 in', '2 lb 4 oz', '1 kg 500 g'. "
-        "IMPORTANT: Pass compound measurements exactly as spoken — do not pre-convert to a single unit before calling this tool."
+        "Amounts can be fractions like '1/2' or '1 1/2'."
     )
     parameters = vol.Schema({
         vol.Required("amount"): str,
@@ -235,45 +229,13 @@ class UnitConverterTool(llm.Tool):
         except Exception:
             raise HomeAssistantError(f"Cannot parse amount '{amount_str}'")
 
-    def _parse_compound(self, amount_str: str, from_unit: str) -> tuple[float, str] | None:
-        compound_map = {
-            ("ft", "in"): ("ft", "inch", 12),
-            ("ft", "inch"): ("ft", "inch", 12),
-            ("feet", "in"): ("ft", "inch", 12),
-            ("feet", "inches"): ("ft", "inch", 12),
-            ("lb", "oz"): ("lb", "oz", 16),
-            ("lbs", "oz"): ("lb", "oz", 16),
-            ("pounds", "oz"): ("lb", "oz", 16),
-            ("pounds", "ounces"): ("lb", "oz", 16),
-            ("kg", "g"): ("kg", "g", 1000),
-        }
-        parts = amount_str.strip().split()
-        if len(parts) == 4:
-            try:
-                major_val = float(Fraction(parts[0]))
-                major_unit = parts[1].lower()
-                minor_val = float(Fraction(parts[2]))
-                minor_unit = parts[3].lower()
-                key = (major_unit, minor_unit)
-                if key in compound_map:
-                    primary, secondary, factor = compound_map[key]
-                    total = major_val + (minor_val / factor)
-                    return (total, primary)
-            except Exception:
-                pass
-        return None
-
     async def async_call(self, hass, tool_input, llm_context) -> JsonObjectType:
         amount_str = tool_input.tool_args["amount"]
         from_unit = tool_input.tool_args["from_unit"].lower().strip()
         to_unit = tool_input.tool_args["to_unit"].lower().strip()
         _LOGGER.debug("Unit converter called: amount='%s' from='%s' to='%s'", amount_str, from_unit, to_unit)
 
-        compound = self._parse_compound(amount_str, from_unit)
-        if compound:
-            amount, from_unit = compound
-        else:
-            amount = self._parse_amount(amount_str)
+        amount = self._parse_amount(amount_str)
 
         if from_unit == "celsius_to_fahrenheit" or (from_unit == "c" and to_unit == "f"):
             result = (amount * 9/5) + 32
@@ -345,94 +307,4 @@ class CalendarDayTool(llm.Tool):
             "day_of_week": target.strftime("%A"),
             "relative": relative,
             "days_from_today": delta,
-        }
-
-
-# ---------------------------------------------------------------------------
-# Timer
-# ---------------------------------------------------------------------------
-
-class TimerTool(llm.Tool):
-    name = "minisearch_timer"
-    description = (
-        "Set a timer that will announce via text-to-speech on the satellite or device "
-        "that the user is speaking from when the timer expires. "
-        "Specify duration in seconds, minutes, or hours. "
-        "Examples: 'set a 10 minute timer', 'remind me in 30 seconds', '1 hour timer'."
-    )
-    parameters = vol.Schema({
-        vol.Required("duration_seconds"): vol.All(int, vol.Range(min=1, max=86400)),
-        vol.Optional("label", default="Timer"): str,
-    })
-
-    async def async_call(self, hass, tool_input, llm_context) -> JsonObjectType:
-        duration = tool_input.tool_args["duration_seconds"]
-        label = tool_input.tool_args.get("label", "Timer")
-        device_id = llm_context.device_id
-        _LOGGER.debug("Timer tool called: duration=%d label='%s' device_id='%s'", duration, label, device_id)
-
-        if duration >= 3600:
-            h = duration // 3600
-            m = (duration % 3600) // 60
-            duration_str = f"{h} hour{'s' if h != 1 else ''}"
-            if m:
-                duration_str += f" {m} minute{'s' if m != 1 else ''}"
-        elif duration >= 60:
-            m = duration // 60
-            s = duration % 60
-            duration_str = f"{m} minute{'s' if m != 1 else ''}"
-            if s:
-                duration_str += f" {s} second{'s' if s != 1 else ''}"
-        else:
-            duration_str = f"{duration} second{'s' if duration != 1 else ''}"
-
-        announcement = f"{label} is done. Your {duration_str} timer has expired."
-
-        async def _fire_timer():
-            await asyncio.sleep(duration)
-            try:
-                if device_id:
-                    entity_registry = async_get_entity_registry(hass)
-                    entities = [
-                        e.entity_id
-                        for e in entity_registry.entities.values()
-                        if e.device_id == device_id
-                        and e.entity_id.startswith("media_player.")
-                    ]
-                    if entities:
-                        _LOGGER.info("Timer firing TTS on %s", entities[0])
-                        await hass.services.async_call(
-                            "tts", "speak",
-                            {
-                                "media_player_entity_id": entities[0],
-                                "message": announcement,
-                                "cache": False,
-                            },
-                            blocking=False,
-                        )
-                        return
-                    else:
-                        _LOGGER.warning("Timer: no media_player found for device_id=%s", device_id)
-
-                _LOGGER.info("Timer falling back to persistent notification")
-                await hass.services.async_call(
-                    "persistent_notification", "create",
-                    {
-                        "title": label,
-                        "message": announcement,
-                        "notification_id": f"timer_{label.lower().replace(' ', '_')}",
-                    },
-                    blocking=False,
-                )
-            except Exception as err:
-                _LOGGER.error("Timer TTS failed: %s", err)
-
-        hass.async_create_task(_fire_timer())
-
-        return {
-            "status": "timer_set",
-            "label": label,
-            "duration_seconds": duration,
-            "duration_friendly": duration_str,
-            "message": f"{label} set for {duration_str}.",
         }
