@@ -215,7 +215,8 @@ class UnitConverterTool(llm.Tool):
         "data sizes (kb, mb, gb, tb), and speed (mph, kph). "
         "For temperature, use 'celsius_to_fahrenheit' or 'fahrenheit_to_celsius' as the from_unit. "
         "Amounts can be fractions like '1/2' or '1 1/2'. "
-        "Compound amounts are supported: '5 ft 10 in', '2 lb 4 oz', '1 kg 500 g'."
+        "Compound amounts are supported: '5 ft 10 in', '2 lb 4 oz', '1 kg 500 g'. "
+        "IMPORTANT: Pass compound measurements exactly as spoken — do not pre-convert to a single unit before calling this tool."
     )
     parameters = vol.Schema({
         vol.Required("amount"): str,
