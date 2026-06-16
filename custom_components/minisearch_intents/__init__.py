@@ -214,7 +214,8 @@ class UnitConverterTool(llm.Tool):
         "weight (kg, lb, oz, g), length (km, mile, m, ft, inch, cm), "
         "data sizes (kb, mb, gb, tb), and speed (mph, kph). "
         "For temperature, use 'celsius_to_fahrenheit' or 'fahrenheit_to_celsius' as the from_unit. "
-        "Amounts can be fractions like '1/2' or '1 1/2'."
+        "Amounts can be fractions like '1/2' or '1 1/2'. "
+        "Compound amounts are supported: '5 ft 10 in', '2 lb 4 oz', '1 kg 500 g'."
     )
     parameters = vol.Schema({
         vol.Required("amount"): str,
@@ -233,12 +234,49 @@ class UnitConverterTool(llm.Tool):
         except Exception:
             raise HomeAssistantError(f"Cannot parse amount '{amount_str}'")
 
+    def _parse_compound(self, amount_str: str, from_unit: str) -> tuple[float, str] | None:
+        """
+        Parse compound amounts like '5 ft 10 in' or '2 lb 4 oz'.
+        Returns (total_in_primary_unit, primary_unit) or None if not compound.
+        """
+        compound_map = {
+            ("ft", "in"): ("ft", "inch", 12),
+            ("ft", "inch"): ("ft", "inch", 12),
+            ("feet", "in"): ("ft", "inch", 12),
+            ("feet", "inches"): ("ft", "inch", 12),
+            ("lb", "oz"): ("lb", "oz", 16),
+            ("lbs", "oz"): ("lb", "oz", 16),
+            ("pounds", "oz"): ("lb", "oz", 16),
+            ("pounds", "ounces"): ("lb", "oz", 16),
+            ("kg", "g"): ("kg", "g", 1000),
+        }
+        parts = amount_str.strip().split()
+        if len(parts) == 4:
+            try:
+                major_val = float(Fraction(parts[0]))
+                major_unit = parts[1].lower()
+                minor_val = float(Fraction(parts[2]))
+                minor_unit = parts[3].lower()
+                key = (major_unit, minor_unit)
+                if key in compound_map:
+                    primary, secondary, factor = compound_map[key]
+                    total = major_val + (minor_val / factor)
+                    return (total, primary)
+            except Exception:
+                pass
+        return None
+
     async def async_call(self, hass, tool_input, llm_context) -> JsonObjectType:
         amount_str = tool_input.tool_args["amount"]
         from_unit = tool_input.tool_args["from_unit"].lower().strip()
         to_unit = tool_input.tool_args["to_unit"].lower().strip()
 
-        amount = self._parse_amount(amount_str)
+        # Check for compound input like "5 ft 10 in"
+        compound = self._parse_compound(amount_str, from_unit)
+        if compound:
+            amount, from_unit = compound
+        else:
+            amount = self._parse_amount(amount_str)
 
         # Temperature special cases
         if from_unit == "celsius_to_fahrenheit" or (from_unit == "c" and to_unit == "f"):

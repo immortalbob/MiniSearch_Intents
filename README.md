@@ -1,18 +1,8 @@
 # MiniSearch Intents
 
-A Home Assistant custom integration that exposes [MiniSearch](https://github.com/immortalbob/MiniSearch) as a native LLM tool API, available to any LLM-backed conversation agent (Ollama, OpenAI, etc.) directly from the HA UI.
+A Home Assistant custom integration that exposes [MiniSearch](https://github.com/immortalbob/minisearch) as an LLM tool API, making it available to any LLM-backed conversation agent (Ollama, OpenAI, etc.) directly from the HA UI.
 
-Once installed, MiniSearch Intents appears as a selectable API in your conversation agent options alongside the built-in Assist API. Your LLM can then search across your entire local knowledge stack and perform utility functions with a single tool call.
-
-## Tools
-
-| Tool | Description | Status |
-|------|-------------|--------|
-| `minisearch` | Routes queries to Kiwix, Open-Meteo, FreshRSS, or SearXNG | ✅ Tested |
-| `calculator` | Evaluates math expressions, sqrt, trig, average | ✅ Tested |
-| `unit_converter` | Converts between kitchen, weight, length, data, speed, and temperature units | ✅ Tested |
-| `calendar_day` | Returns day of week and relative info for a given date | ✅ Tested |
-| `set_timer` | Sets a timer that announces via TTS on the originating satellite | ⚠️ Untested — may conflict with built-in Assist timer handling |
+Once installed, MiniSearch appears as a selectable API in your conversation agent options alongside the built-in Assist API. Your LLM can then search across your entire local knowledge stack with a single tool call.
 
 ## What MiniSearch provides
 
@@ -23,7 +13,7 @@ Once installed, MiniSearch Intents appears as a selectable API in your conversat
 
 ## Requirements
 
-- [MiniSearch](https://github.com/immortalbob/MiniSearch) running and reachable from Home Assistant
+- [MiniSearch](https://github.com/immortalbob/minisearch) running and reachable from Home Assistant
 - Home Assistant 2024.6.0 or later
 - An LLM conversation agent (Ollama, OpenAI, etc.) configured in Home Assistant
 
@@ -55,20 +45,11 @@ Once installed, MiniSearch Intents appears as a selectable API in your conversat
 4. Under **Control Home Assistant**, enable **MiniSearch**
 5. Save
 
-## Unit Converter reference
-
-Supported unit pairs:
-
-- **Kitchen volume:** cup, tablespoon, teaspoon, ml, pint, liter
-- **Weight:** kg, lb, oz, g
-- **Length:** km, mile, m, ft, inch, cm
-- **Data:** kb, mb, gb, tb
-- **Speed:** mph, kph
-- **Temperature:** use `celsius_to_fahrenheit` or `fahrenheit_to_celsius` as the `from_unit`
-
-Amounts can be fractions: `1/2`, `1 1/2`, `0.75`
+Your LLM will now have access to the `minisearch` tool and will use it automatically when answering questions that require looking things up.
 
 ## Part of the MiniNet stack
 
-- [MiniSearch](https://github.com/immortalbob/MiniSearch) — the search backend
+This integration is part of the MiniNet homelab ecosystem:
+
+- [MiniSearch](https://github.com/immortalbob/minisearch) — the search backend
 - [openwebui-tools](https://github.com/immortalbob/openwebui-tools) — Open WebUI tool versions of the same sources
