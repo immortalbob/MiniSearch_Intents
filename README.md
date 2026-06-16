@@ -1,10 +1,40 @@
 # MiniSearch Intents
 
-A Home Assistant custom integration that exposes [MiniSearch](https://github.com/immortalbob/MiniSearch) as a native LLM tool API, available to any LLM-backed conversation agent (Ollama, OpenAI, etc.) directly from the HA UI.
+A Home Assistant custom integration that exposes [MiniSearch](https://github.com/immortalbob/MiniSearch) and a set of local utility tools as a native LLM Tool API.
 
-Once installed, MiniSearch Intents appears as a selectable API in your conversation agent options alongside the built-in Assist API. Your LLM can then search across your entire local knowledge stack and perform utility functions with a single tool call.
+Once enabled, any Home Assistant conversation agent (Ollama, OpenAI, Anthropic, etc.) can search your local knowledge stack, perform calculations, convert units, query dates, and eventually manage timers through a single tool interface.
 
-## Tools
+MiniSearch Intents appears alongside the built-in Assist API and can be enabled per conversation agent from the Home Assistant UI.
+
+
+## What MiniSearch provides
+
+- **Offline knowledge** — Wikipedia, Stack Exchange, iFixit, FreeCodeCamp, DevDocs via Kiwix
+- **Weather forecast** — 3-day forecast via Open-Meteo (no API key required)
+- **News** — Recent articles from your FreshRSS RSS feeds
+- **Web search** — Live search via your local SearXNG instance
+
+## Architecture
+
+```
+ESP32 Voice Assistant
+          │
+          ▼
+   Home Assistant
+          │
+          ▼
+ MiniSearch Intents
+          │
+          ▼
+     MiniSearch
+          │
+          ├─ Kiwix
+          ├─ FreshRSS
+          ├─ Open-Meteo
+          └─ SearXNG
+```
+
+## Available Tools
 
 | Tool | Description | Status |
 |------|-------------|--------|
@@ -14,13 +44,6 @@ Once installed, MiniSearch Intents appears as a selectable API in your conversat
 | `calendar_day` | Returns day of week and relative info for a given date | ✅ Working |
 | `set_timer` | Sets a timer that announces via TTS on the originating satellite | ⚠️ Work in progress — conflicts with built-in Assist timer handling |
 | Compound unit conversion | Handles inputs like "5 ft 10 in" or "2 lb 4 oz" | ⚠️ Work in progress — 8B models tend to pre-convert before calling the tool |
-
-## What MiniSearch provides
-
-- **Offline knowledge** — Wikipedia, Stack Exchange, iFixit, FreeCodeCamp, DevDocs via Kiwix
-- **Weather forecast** — 3-day forecast via Open-Meteo (no API key required)
-- **News** — Recent articles from your FreshRSS RSS feeds
-- **Web search** — Live search via your local SearXNG instance
 
 ## Requirements
 
