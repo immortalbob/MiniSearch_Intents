@@ -6,7 +6,6 @@ import aiohttp
 
 from homeassistant import config_entries
 from homeassistant.core import callback
-from homeassistant.data_entry_flow import FlowResult
 
 from .const import DOMAIN, CONF_MINISEARCH_URL, DEFAULT_MINISEARCH_URL
 
@@ -15,7 +14,10 @@ async def _test_connection(url: str) -> bool:
     """Test connection to MiniSearch."""
     try:
         async with aiohttp.ClientSession() as session:
-            async with session.get(f"{url}/health", timeout=aiohttp.ClientTimeout(total=5)) as resp:
+            async with session.get(
+                f"{url}/health",
+                timeout=aiohttp.ClientTimeout(total=5),
+            ) as resp:
                 return resp.status == 200
     except Exception:
         return False
@@ -26,12 +28,14 @@ class MiniSearchConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
     VERSION = 1
 
-    async def async_step_user(self, user_input=None) -> FlowResult:
+    async def async_step_user(
+        self, user_input: dict | None = None
+    ) -> config_entries.ConfigFlowResult:
         """Handle the initial step."""
         await self.async_set_unique_id(DOMAIN)
         self._abort_if_unique_id_configured()
 
-        errors = {}
+        errors: dict[str, str] = {}
 
         if user_input is not None:
             url = user_input[CONF_MINISEARCH_URL].rstrip("/")
@@ -55,19 +59,20 @@ class MiniSearchConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
     @staticmethod
     @callback
-    def async_get_options_flow(config_entry):
+    def async_get_options_flow(
+        config_entry: config_entries.ConfigEntry,
+    ) -> MiniSearchOptionsFlow:
         return MiniSearchOptionsFlow(config_entry)
 
 
 class MiniSearchOptionsFlow(config_entries.OptionsFlow):
     """Handle options for MiniSearch Intents."""
 
-    def __init__(self, config_entry: config_entries.ConfigEntry) -> None:
-        self.config_entry = config_entry
-
-    async def async_step_init(self, user_input=None) -> FlowResult:
+    async def async_step_init(
+        self, user_input: dict | None = None
+    ) -> config_entries.ConfigFlowResult:
         """Manage the options."""
-        errors = {}
+        errors: dict[str, str] = {}
 
         current_url = self.config_entry.options.get(
             CONF_MINISEARCH_URL,

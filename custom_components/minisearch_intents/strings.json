@@ -24,6 +24,7 @@
     "step": {
       "init": {
         "title": "MiniSearch Intents Options",
+        "description": "Update the URL if your MiniSearch container has moved or changed ports.",
         "data": {
           "minisearch_url": "MiniSearch URL"
         },
@@ -33,7 +34,8 @@
       }
     },
     "error": {
-      "cannot_connect": "Cannot connect to MiniSearch. Check the URL and ensure the container is running."
+      "cannot_connect": "Cannot connect to MiniSearch. Check the URL and ensure the container is running.",
+      "unknown": "Unexpected error occurred."
     }
   }
 }
