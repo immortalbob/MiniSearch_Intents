@@ -119,3 +119,4 @@ Examples:
 ## Part of the MiniNet stack
 
 - [MiniSearch](https://github.com/immortalbob/MiniSearch) — the search backend
+- [MiniSense-T7S3](https://github.com/immortalbob/MiniSense-T7S3) — ESP32-S3 room sensor node with voice assistant and CO2 monitoring
