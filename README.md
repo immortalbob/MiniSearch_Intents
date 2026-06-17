@@ -116,11 +116,6 @@ Examples:
 | v1.2.0 | v2.3.0 or later |
 | v1.1.0 | v2.0.0 or later |
 
-## Roadmap
-
-- **Timer** — TTS announcement on the originating satellite when a timer expires. Pending resolution of a conflict with Home Assistant's built-in timer intent handling.
-- **Compound unit conversion** — support for inputs like "5 ft 10 in" or "2 lb 4 oz". Pending — smaller LLMs (8B) tend to pre-convert before calling the tool, bypassing this feature.
-
 ## Part of the MiniNet stack
 
 - [MiniSearch](https://github.com/immortalbob/MiniSearch) — the search backend
