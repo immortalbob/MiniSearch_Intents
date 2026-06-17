@@ -14,7 +14,7 @@ from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers import llm
 from homeassistant.util.json import JsonObjectType
 
-from .const import DOMAIN, CONF_MINISEARCH_URL, DEFAULT_MINISEARCH_URL, API_NAME
+from .const import DOMAIN, CONF_MINISEARCH_URL, DEFAULT_MINISEARCH_URL, API_NAME, UNIT_CONVERSIONS
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -62,7 +62,11 @@ class MiniSearchAPI(llm.API):
                 "You have access to MiniSearch tools for knowledge lookup, calculations, "
                 "unit conversions, and calendar queries. "
                 "Use `minisearch` for any question requiring external information — it routes "
-                "automatically to offline knowledge, weather forecast, news, or web search. "
+                "automatically to offline knowledge, weather forecast, news, web search, or "
+                "service status. Use source='forecast' for weather, source='news' for recent "
+                "articles, source='kiwix' for encyclopedic or technical knowledge, "
+                "source='web' for current events, source='uptime' to check if services or "
+                "devices are up or down. "
                 "Use `calculator` for math. Use `unit_converter` for unit conversions. "
                 "Use `calendar_day` to find what day of the week a date falls on."
             ),
@@ -84,15 +88,17 @@ class MiniSearchTool(llm.Tool):
     name = "minisearch"
     description = (
         "Search for information using MiniSearch. Automatically selects the best source "
-        "based on the query — offline knowledge base, weather forecast, news feed, or web search. "
+        "based on the query — offline knowledge base, weather forecast, news feed, web search, "
+        "or service status monitoring. "
         "Use source='forecast' for weather questions, source='news' for recent articles, "
-        "source='kiwix' for encyclopedic or technical knowledge, source='web' for current events. "
+        "source='kiwix' for encyclopedic or technical knowledge, source='web' for current events, "
+        "source='uptime' to check whether services or devices are up or down. "
         "Leave source as 'auto' when unsure."
     )
     parameters = vol.Schema({
         vol.Required("query"): str,
         vol.Optional("source", default="auto"): vol.In(
-            ["auto", "kiwix", "forecast", "news", "web"]
+            ["auto", "kiwix", "forecast", "news", "web", "uptime"]
         ),
     })
 
@@ -168,49 +174,14 @@ class CalculatorTool(llm.Tool):
 # Unit Converter
 # ---------------------------------------------------------------------------
 
-UNIT_CONVERSIONS = {
-    # Volume (kitchen)
-    ("cup", "ml"): 236.588, ("ml", "cup"): 1/236.588,
-    ("cup", "tablespoon"): 16, ("tablespoon", "cup"): 1/16,
-    ("cup", "teaspoon"): 48, ("teaspoon", "cup"): 1/48,
-    ("tablespoon", "teaspoon"): 3, ("teaspoon", "tablespoon"): 1/3,
-    ("tablespoon", "ml"): 14.787, ("ml", "tablespoon"): 1/14.787,
-    ("teaspoon", "ml"): 4.929, ("ml", "teaspoon"): 1/4.929,
-    ("cup", "liter"): 0.236588, ("liter", "cup"): 1/0.236588,
-    ("pint", "cup"): 2, ("cup", "pint"): 0.5,
-    ("pint", "ml"): 473.176, ("ml", "pint"): 1/473.176,
-    # Weight
-    ("kg", "lb"): 2.20462, ("lb", "kg"): 1/2.20462,
-    ("kg", "oz"): 35.274, ("oz", "kg"): 1/35.274,
-    ("lb", "oz"): 16, ("oz", "lb"): 1/16,
-    ("g", "oz"): 0.035274, ("oz", "g"): 1/0.035274,
-    ("g", "lb"): 0.00220462, ("lb", "g"): 1/0.00220462,
-    ("g", "kg"): 0.001, ("kg", "g"): 1000,
-    # Length
-    ("km", "mile"): 0.621371, ("mile", "km"): 1/0.621371,
-    ("m", "ft"): 3.28084, ("ft", "m"): 1/3.28084,
-    ("m", "inch"): 39.3701, ("inch", "m"): 1/39.3701,
-    ("cm", "inch"): 0.393701, ("inch", "cm"): 1/0.393701,
-    ("ft", "inch"): 12, ("inch", "ft"): 1/12,
-    ("mile", "ft"): 5280, ("ft", "mile"): 1/5280,
-    # Data
-    ("gb", "mb"): 1024, ("mb", "gb"): 1/1024,
-    ("tb", "gb"): 1024, ("gb", "tb"): 1/1024,
-    ("mb", "kb"): 1024, ("kb", "mb"): 1/1024,
-    # Speed
-    ("mph", "kph"): 1.60934, ("kph", "mph"): 1/1.60934,
-    ("mph", "ms"): 0.44704, ("ms", "mph"): 1/0.44704,
-}
-
-
 class UnitConverterTool(llm.Tool):
     name = "unit_converter"
     description = (
         "Convert between units of measurement. "
         "Supports kitchen volume (cup, tablespoon, teaspoon, ml, pint, liter), "
         "weight (kg, lb, oz, g), length (km, mile, m, ft, inch, cm), "
-        "data sizes (kb, mb, gb, tb), and speed (mph, kph). "
-        "For temperature, use 'celsius_to_fahrenheit' or 'fahrenheit_to_celsius' as the from_unit. "
+        "data sizes (kb, mb, gb, tb), and speed (mph, kph, mps). "
+        "For temperature use from_unit='c' to_unit='f' or from_unit='f' to_unit='c'. "
         "Amounts can be fractions like '1/2' or '1 1/2'."
     )
     parameters = vol.Schema({
@@ -237,10 +208,11 @@ class UnitConverterTool(llm.Tool):
 
         amount = self._parse_amount(amount_str)
 
-        if from_unit == "celsius_to_fahrenheit" or (from_unit == "c" and to_unit == "f"):
+        # Temperature — handle c/f conversion explicitly
+        if from_unit == "c" and to_unit == "f":
             result = (amount * 9/5) + 32
             return {"amount": amount, "from": "°C", "to": "°F", "result": round(result, 2)}
-        if from_unit == "fahrenheit_to_celsius" or (from_unit == "f" and to_unit == "c"):
+        if from_unit == "f" and to_unit == "c":
             result = (amount - 32) * 5/9
             return {"amount": amount, "from": "°F", "to": "°C", "result": round(result, 2)}
 
@@ -248,7 +220,7 @@ class UnitConverterTool(llm.Tool):
         if key not in UNIT_CONVERSIONS:
             raise HomeAssistantError(
                 f"Don't know how to convert '{from_unit}' to '{to_unit}'. "
-                f"Supported: {', '.join(set(k[0] for k in UNIT_CONVERSIONS))}"
+                f"Supported units: {', '.join(sorted(set(k[0] for k in UNIT_CONVERSIONS)))}"
             )
 
         result = amount * UNIT_CONVERSIONS[key]
