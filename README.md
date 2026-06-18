@@ -100,4 +100,4 @@ Examples:
 ## Part of the Mnemo-Net stack
 
 - [Mnemolis](https://github.com/immortalbob/Mnemolis) — the knowledge broker backend
-- [MiniSense-T7S3](https://github.com/immortalbob/MiniSense-T7S3) — ESP32-S3 room sensor node with voice assistant and CO2 monitoring
+- [Mnemovox-T7S3](https://github.com/immortalbob/Mnemovox-T7S3) — ESP32-S3 room sensor node with voice assistant and CO2 monitoring
