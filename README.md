@@ -97,7 +97,7 @@ Examples:
 | v1.2.0 | v2.3.0 or later |
 | v1.1.0 | v2.0.0 or later |
 
-## Part of the MiniNet stack
+## Part of the Mnemo-Net stack
 
 - [Mnemolis](https://github.com/immortalbob/Mnemolis) — the knowledge broker backend
 - [MiniSense-T7S3](https://github.com/immortalbob/MiniSense-T7S3) — ESP32-S3 room sensor node with voice assistant and CO2 monitoring
